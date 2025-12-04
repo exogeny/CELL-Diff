@@ -1,14 +1,13 @@
-ulimit -c unlimited
 [ -z "${n_gpu}" ] && n_gpu=$(nvidia-smi -L | wc -l)
 [ -z "${output_dir}" ] && output_dir=pretrain_hpa/$WANDB_RUN_NAME
 
 # Dataset
 [ -z "${data_path}" ] && data_path=.
 [ -z "${img_crop_method}" ] && img_crop_method=random
-[ -z "${img_crop_size}" ] && img_crop_size=1024
-[ -z "${img_resize}" ] && img_resize=256
+[ -z "${img_crop_size}" ] && img_crop_size=384
+[ -z "${img_resize}" ] && img_resize=224
 [ -z "${seq_zero_mask_ratio}" ] && seq_zero_mask_ratio=0.5
-[ -z "${cell_image}" ] && cell_image='nucl,er,mt'
+[ -z "${cell_image}" ] && cell_image='nucl,seg'
 [ -z "${split_key}" ] && split_key=train
 
 # DDPM
@@ -25,13 +24,13 @@ ulimit -c unlimited
 [ -z "${vae_block_out_channels}" ] && vae_block_out_channels='128,256,512'
 
 ## CELL-Diff
-[ -z "${block_out_channels}" ] && block_out_channels='320,640,1280,1280'
+[ -z "${block_out_channels}" ] && block_out_channels='192,384,768,768'
 [ -z "${layers_per_block}" ] && layers_per_block=2
 [ -z "${mid_num_attention_heads}" ] && mid_num_attention_heads=8
 [ -z "${sample_size}" ] && sample_size=64
 [ -z "${esm_embedding}" ] && esm_embedding=esm2
-[ -z "${hidden_size}" ] && hidden_size=1280
-[ -z "${max_protein_sequence_len}" ] && max_protein_sequence_len=2048
+[ -z "${hidden_size}" ] && hidden_size=768
+[ -z "${max_protein_sequence_len}" ] && max_protein_sequence_len=4980
 [ -z "${num_hidden_layers}" ] && num_hidden_layers=8
 [ -z "${num_attention_heads}" ] && num_attention_heads=8
 [ -z "${mlp_ratio}" ] && mlp_ratio=4
@@ -49,15 +48,15 @@ ulimit -c unlimited
 [ -z "${learning_rate}" ] && learning_rate=5e-5
 [ -z "${weight_decay}" ] && weight_decay=0.0
 [ -z "${gradient_accumulation_steps}" ] && gradient_accumulation_steps=4
-[ -z "${per_device_train_batch_size}" ] && per_device_train_batch_size=16
-[ -z "${per_device_eval_batch_size}" ] && per_device_eval_batch_size=128
+[ -z "${per_device_train_batch_size}" ] && per_device_train_batch_size=2
+[ -z "${per_device_eval_batch_size}" ] && per_device_eval_batch_size=8
 
 [ -z "${num_train_epochs}" ] && num_train_epochs=5000
 [ -z "${logging_dir}" ] && logging_dir=$output_dir
 [ -z "${logging_steps}" ] && logging_steps=100
-[ -z "${warmup_steps}" ] && warmup_steps=1000
-[ -z "${max_steps}" ] && max_steps=100000
-[ -z "${save_steps}" ] && save_steps=1000
+[ -z "${warmup_steps}" ] && warmup_steps=4000
+[ -z "${max_steps}" ] && max_steps=400000
+[ -z "${save_steps}" ] && save_steps=40000
 
 [ -z "${MASTER_PORT}" ] && MASTER_PORT=29405
 [ -z "${MASTER_ADDR}" ] && MASTER_ADDR=127.0.0.1
@@ -111,7 +110,9 @@ python -m torch.distributed.run $DISTRIBUTED_ARGS cell_diff/tasks/cell_diff/pret
             --warmup_steps $warmup_steps \
             --max_steps $max_steps \
             --save_steps $save_steps \
-            --seed 666666 \
+            --seed 42 \
+            --bf16 \
+            --ifresume
 
             # --ft \
             # --ifresume \

@@ -26,10 +26,10 @@ import json
 class CELLDiffModel(PreTrainedModel):
     config_class = CELLDiffConfig
 
-    def __init__(self, config, loss_fn=None):
+    def __init__(self, config, vae, loss_fn=None):
         super().__init__(config)
         self.config = config
-        
+        self.vae = vae
         self.loss = loss_fn(config)
 
         self.cell_img_placeholder = nn.Parameter(
@@ -116,21 +116,24 @@ class CELLDiffModel(PreTrainedModel):
                     )
                 )
 
-    def forward(self, batched_data, vae: VAEModel, **kwargs):
+    def forward(self, batched_data, **kwargs):
 
         with torch.no_grad():
             protein_img = batched_data['protein_img']
 
-            protein_img_latent = vae.encode(protein_img).sample()
-            nucleus_img_latent = vae.encode(batched_data['nucleus_img']).sample()
+            protein_img_latent = self.vae.encode(protein_img).sample()
+            nucleus_img_latent = self.vae.encode(batched_data['nucleus_img']).sample()
 
             if self.config.cell_image == 'nucl':
                 cell_img_latent = nucleus_img_latent
+            elif self.config.cell_image == 'nucl,seg':
+                seg_img_latent = self.vae.encode(batched_data['seg_img']).sample()
+                cell_img_latent = torch.cat([nucleus_img_latent, seg_img_latent], dim=1)
 
             elif self.config.cell_image == 'nucl,er':
                 if 'ER_img' in batched_data:
                     ER_img = batched_data['ER_img']
-                    ER_img_latent = vae.encode(ER_img).sample()
+                    ER_img_latent = self.vae.encode(ER_img).sample()
                     mask = (torch.rand(ER_img_latent.shape[0]) <= self.config.cell_image_ratio).bool()
                     ER_img_latent[~mask] = self.cell_img_placeholder
                 else:
@@ -144,7 +147,7 @@ class CELLDiffModel(PreTrainedModel):
             elif self.config.cell_image == 'nucl,mt':
                 if 'microtubules_img' in batched_data:
                     microtubules_img = batched_data['microtubules_img']
-                    microtubules_img_latent = vae.encode(microtubules_img).sample()
+                    microtubules_img_latent = self.vae.encode(microtubules_img).sample()
                     mask = (torch.rand(microtubules_img_latent.shape[0]) <= self.config.cell_image_ratio).bool()
                     microtubules_img_latent[~mask] = self.cell_img_placeholder
                 else:
@@ -158,7 +161,7 @@ class CELLDiffModel(PreTrainedModel):
             elif self.config.cell_image == 'nucl,er,mt':
                 if 'ER_img' in batched_data:
                     ER_img = batched_data['ER_img']
-                    ER_img_latent = vae.encode(ER_img).sample()
+                    ER_img_latent = self.vae.encode(ER_img).sample()
                     mask = (torch.rand(ER_img_latent.shape[0]) <= self.config.cell_image_ratio).bool()
                     ER_img_latent[~mask] = self.cell_img_placeholder
                 else:
@@ -170,7 +173,7 @@ class CELLDiffModel(PreTrainedModel):
 
                 if 'microtubules_img' in batched_data:
                     microtubules_img = batched_data['microtubules_img']
-                    microtubules_img_latent = vae.encode(microtubules_img).sample()
+                    microtubules_img_latent = self.vae.encode(microtubules_img).sample()
                     mask = (torch.rand(microtubules_img_latent.shape[0]) <= self.config.cell_image_ratio).bool()
                     microtubules_img_latent[~mask] = self.cell_img_placeholder
                 else:

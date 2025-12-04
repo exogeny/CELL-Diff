@@ -13,7 +13,7 @@ sys.path.extend([".", ".."])
 from pathlib import Path
 
 from cell_diff.criterions.unidiff import UniDiffCriterions
-from cell_diff.data.hpa_data.dataset import HPALMDBDataset
+from cell_diff.data.hpa_data.dataset import HPADataset
 from cell_diff.models.cell_diff.config import CELLDiffConfig
 from cell_diff.models.cell_diff.model import CELLDiffModel
 from cell_diff.models.vae.vae_model import VAEModel
@@ -73,7 +73,7 @@ def main(args) -> None:
     vae.to(device)
     vae.eval()
 
-    valset = HPALMDBDataset(args, split_key=args.split_key, vae=vae)
+    valset = HPADataset(args, split_key=args.split_key, vae=vae)
     vocab = valset.vocab
 
     model = CELLDiffModel(config=CELLDiffConfig(**vars(args)), loss_fn=UniDiffCriterions)

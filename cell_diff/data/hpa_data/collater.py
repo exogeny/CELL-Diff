@@ -73,21 +73,25 @@ def collate_fn(samples: List[dict],
         [s["protein_img"].unsqueeze(0) for s in samples]
     )
 
+    batch["seg_img"] = torch.cat(
+        [s["seg_img"].unsqueeze(0) for s in samples]
+    )
+
     batch["nucleus_img"] = torch.cat(
         [s["nucleus_img"].unsqueeze(0) for s in samples]
     )
 
-    batch["microtubules_img"] = torch.cat(
-        [s["microtubules_img"].unsqueeze(0) for s in samples]
-    )
+    # batch["microtubules_img"] = torch.cat(
+    #     [s["microtubules_img"].unsqueeze(0) for s in samples]
+    # )
 
-    batch["ER_img"] = torch.cat(
-        [s["ER_img"].unsqueeze(0) for s in samples]
-    )
+    # batch["ER_img"] = torch.cat(
+    #     [s["ER_img"].unsqueeze(0) for s in samples]
+    # )
 
-    batch["rna_expression"] = torch.cat(
-        [s["rna_expression"].unsqueeze(0) for s in samples]
-    )
+    # batch["rna_expression"] = torch.cat(
+    #     [s["rna_expression"].unsqueeze(0) for s in samples]
+    # )
 
     batch["zm_label"] = torch.cat(
         [s["zm_label"].unsqueeze(0) for s in samples]

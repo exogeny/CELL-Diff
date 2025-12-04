@@ -1,21 +1,27 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import torch
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.extend([".", ".."])
 
 from cell_diff.criterions.unidiff import UniDiffCriterions
-from cell_diff.data.hpa_data.dataset import HPALMDBDataset
+from cell_diff.data.hpa_data.dataset import HPADataset
 from cell_diff.models.cell_diff.config import CELLDiffConfig
 from cell_diff.models.cell_diff.model import CELLDiffModel
 from cell_diff.models.vae.vae_model import VAEModel
 from cell_diff.models.vae.vae_config import VAEConfig
 from cell_diff.utils.cli_utils import cli
-from transformers import Trainer, TrainingArguments
+from transformers import Trainer, TrainerCallback, TrainingArguments
 from cell_diff.logging.loggers import CELLDiffLoggingCallback
 from cell_diff.logging import logger
 from copy import deepcopy
+
+
+class ClearMemoryCallback(TrainerCallback):
+    def on_epoch_end(self, args, state, control, **kwargs):
+        torch.cuda.empty_cache()
 
 
 @cli(CELLDiffConfig)
@@ -30,8 +36,8 @@ def main(args) -> None:
         param.requires_grad = False
     vae.eval()
 
-    trainset = HPALMDBDataset(args, split_key=args.split_key, vae=vae)
-    model = CELLDiffModel(config=CELLDiffConfig(**vars(args)), loss_fn=UniDiffCriterions)
+    trainset = HPADataset(args, split_key=args.split_key, vae=None)
+    model = CELLDiffModel(config=CELLDiffConfig(**vars(args)), loss_fn=UniDiffCriterions, vae=vae)
 
     logger.info(args)
 
@@ -51,8 +57,8 @@ def main(args) -> None:
         warmup_steps=args.warmup_steps, 
         save_steps=args.save_steps, 
         seed=args.seed, 
-        dataloader_num_workers=args.dataloader_num_workers, 
-        report_to='wandb', 
+        dataloader_num_workers=args.dataloader_num_workers,
+        report_to='none', 
         disable_tqdm=True, 
         remove_unused_columns=False, 
         overwrite_output_dir=True, 
